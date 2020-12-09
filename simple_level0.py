@@ -1,7 +1,7 @@
 import numpy as np
 import h5py as h5
 import os
-
+from scipy.interpolate import RegularGridInterpolator as interp3D
 import matplotlib.pyplot as plt
 
 import yt
@@ -177,7 +177,7 @@ N = prob_dom[-1] +1
 
 
 comp = 25 # ||  25 = \phi
-lev_max=1
+lev_max=2
 # Ngrid = N*(lev_max+1)
 Ngrid = N* 2**(lev_max)
 dims = np.array([Ngrid,Ngrid,Ngrid])
@@ -212,26 +212,84 @@ for il in range(lev_max+1):
         data_no_ghost = data_no_ghost[ghost_slice]
 
         # print("m", np.max(data), np.max(data_no_ghost))
-        ib = 2 #**(lev_max - il )
-        # ib=0
-        sb = box * ib
+        ib = 2 **(lev_max)  #  2 #**(lev_max - il )
+        sb = box * ib  #todo: remvoe IB  after interpolation
         sb[3:] += 1
-        sb += lev_max - il #todo
-        # if il==1 : sb[0], sb[3] = [sb[0]+1, sb[3]+1]
-        # if il==1 : sb[1], sb[4] = [sb[1]+1, sb[4]+1]
-        # if il == 1: sb[2], sb[5] = [sb[2] + 1, sb[5] + 1]
-        print(sb, ib, np.shape(data_no_ghost) )
+        interval = (lev_max - il)
+        sb += interval
+        # sb[0], sb[3] = [sb[0]+1, sb[3]+1]
+        # sb[1], sb[4] = [sb[1]+interval, sb[4]+interval]
+        # sb[2], sb[5] = [sb[2]+interval, sb[5]+interval]
+        print(sb, box, ib, np.shape(data_no_ghost) )
 
+        x = np.arange(0, Ngrid)
+        y = np.arange(0, Ngrid)
+        z = np.arange(0, Ngrid)
+
+        x, y, z = np.meshgrid(x, y, z, indexing='ij')
+
+
+
+        # print(x)
+        # if il < lev_max:
+        #     fint = interp3D((x, y, z), data_no_ghost)
+        #
+        # x = np.arange(sb[0], sb[3], 1, dtype=int)
+        # y = np.arange(sb[1], sb[4], 1, dtype=int)
+        # z = np.arange(sb[2], sb[5], 1, dtype=int)
+        #
+        # print(x)
+        #
+        # interp_grid = np.zeros([sb[3]-sb[0],sb[4] - sb[1], sb[5] - sb[2]])
+        #
+        # if il < lev_max:
+        #     for i, ix in enumerate(x):
+        #         for j, iy in enumerate(y):
+        #             for k, iz in enumerate(z):
+        #                 interp_grid[i,j,k] = fint([ix,iy,iz])[0]
+        # else:
+        #     interp_grid = data_no_ghost
+
+                    # print(i, fint([ix,iy,iz]))
+
+        # interp_grid = np.array([fint([ix, iy, iz], for ix in x, iy in y, )
+
+
+        # grid[sb[0]:sb[3], sb[1]:sb[4], sb[2]:sb[5]] = interp_grid
+
+        # # todo: remvoe IB  after interpolation
         grid[sb[0]:sb[3]:ib, sb[1]:sb[4]:ib, sb[2]:sb[5]:ib] = data_no_ghost
         mask_grid[sb[0]:sb[3]:ib, sb[1]:sb[4]:ib, sb[2]:sb[5]:ib] = 1
-            # grid[sb[0]+1:sb[3]+1:ib, sb[1]+1:sb[4]+1:ib, sb[2]+1:sb[5]+1:ib] = data_no_ghost
+        #     # grid[sb[0]+1:sb[3]+1:ib, sb[1]+1:sb[4]+1:ib, sb[2]+1:sb[5]+1:ib] = data_no_ghost
 
 
 
         print( np.size(grid[grid == -123456789]), np.size(grid) )
 
 print("masked ", grid[mask_grid].shape )
+arg = np.argmax(grid[mask_grid])
+print(" max val ", grid[mask_grid][arg], (x[mask_grid][arg], y[mask_grid][arg], z[mask_grid][arg])    )
+# print("x ", x[mask_grid] )
 
 
-plt.imshow(grid[0, :,:])
+#TODO: There is a bug on how the boxes are inserted in the grid, the proces in line 216 is wrong,
+#TODO: it should be done by taking the coordinates at each box, and append cords and values to final out.
+
+
+
+# grid_x, grid_y , grid_z = np.meshgrid(np.arange(0, Ngrid),np.arange(0, Ngrid),np.arange(0, Ngrid), indexing='ij')
+
+
+
+
+grid[~mask_grid]=np.nan
+plt.imshow(grid[Ngrid//2, :,:])
+
+from scipy.interpolate import griddata
+points = np.array([x[mask_grid], y[mask_grid], z[mask_grid]]).T
+values = np.array( grid[mask_grid] )
+grid_z2 = griddata(points, values, (x,y,z), method='linear')
+plt.imshow(grid_z2[Ngrid//2, :,:], interpolation='spline16')
+
+
 plt.show()
