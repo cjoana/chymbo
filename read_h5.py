@@ -95,90 +95,100 @@ def load_dataset(  # self,
 fn = "data_samples/level2_dataset_SF.hdf5"
 comp = 25  # ||  25 = \phi
 verbose = 1
-lev_max = 2
+level_max = 2
 res = 32
 
-# loading attrb and refs.
-out = load_dataset(fn)
-box0 = out["level_0"]["boxes"][0]
-b0 = np.array([int(el) for el in box0], dtype=int)
-num_ghost = out["level_0"]["data_attrb"]["outputGhost"][-1]
-offsets = out["level_0"]["offsets"]
-num_components = out["level_0"]["data_attrb"]["num_components"]
-data = out["level_0"]["data"]
-prob_dom = out["all_attrb"]["level_0"]["prob_domain"]
-N = prob_dom[-1]+1
-Ngrid = N * 2**(lev_max)
-dims = np.array([Ngrid,Ngrid, Ngrid])
-mask_grid = np.zeros(dims, dtype=bool)
+def get_data(fn, comp, level_max=2, verbose=0):
 
-# print out basic attrb
-if verbose:
-    print("making grid::")
-    print("level max ", lev_max)
-    print("dim 0",  N)
-    print("dim_max ", Ngrid)
+    #TODO: introduce possibility of comp = str, i.e  comp="phi"
 
-# Gridding: extract data and coords
-xcords=[]
-ycords=[]
-zcords=[]
-gdata=[]
-for il in range(lev_max+1):
+    # loading attrb and refs.
+    out = load_dataset(fn)
+    box0 = out["level_0"]["boxes"][0]
+    b0 = np.array([int(el) for el in box0], dtype=int)
+    num_ghost = out["level_0"]["data_attrb"]["outputGhost"][-1]
+    offsets = out["level_0"]["offsets"]
+    num_components = out["level_0"]["data_attrb"]["num_components"]
+    data = out["level_0"]["data"]
+    prob_dom = out["all_attrb"]["level_0"]["prob_domain"]
+    N = prob_dom[-1]+1
+    Ngrid = N * 2**(level_max)
+    dims = np.array([Ngrid,Ngrid, Ngrid])
+    mask_grid = np.zeros(dims, dtype=bool)
 
-    boxes = out["level_{}".format(il)]["boxes"]
-    offsets = out["level_{}".format(il)]["offsets"]
-    num_ghost = out["level_{}".format(il)]["data_attrb"]["outputGhost"][-1]
-    num_components = out["level_{}".format(il)]["data_attrb"]["num_components"]
-    data = out["level_{}".format(il)]["data"]
-    Nlev = N * 2 ** (il)
-
+    # print out basic attrb
     if verbose:
-        print("num boxes ", len(boxes))
-        print("starting level ", il)
+        print("making grid::")
+        print("level max ", level_max)
+        print("dim 0",  N)
+        print("dim_max ", Ngrid)
 
-    for ib, box in enumerate(boxes):
-        box = np.array([el for el in box], dtype=int)
-        bdims = box[3:] - box[:3]+1
-        shape = bdims + 2 * num_ghost
-        boxsize = shape.prod()
+    # Gridding: extract data and coords
+    xcords=[]
+    ycords=[]
+    zcords=[]
+    gdata=[]
+    for il in range(level_max + 1):
 
-        start = offsets[ib] + comp * boxsize
-        stop = start + boxsize
-        boxdata = data[start:stop]
-        data_w_ghost = boxdata.reshape(shape, order='F')
-        ghost_slice = tuple(
-            [slice(g, d + g , None) for g, d in zip([num_ghost, num_ghost, num_ghost], bdims)])
-        data_no_ghost = data_w_ghost[ghost_slice]
+        boxes = out["level_{}".format(il)]["boxes"]
+        offsets = out["level_{}".format(il)]["offsets"]
+        num_ghost = out["level_{}".format(il)]["data_attrb"]["outputGhost"][-1]
+        num_components = out["level_{}".format(il)]["data_attrb"]["num_components"]
+        data = out["level_{}".format(il)]["data"]
+        Nlev = N * 2 ** (il)
 
-        # for some reasons it has to be in this order, y, x, z
-        yi = np.linspace(box[0], box[3], bdims[0]) / Nlev
-        xi = np.linspace(box[1], box[4], bdims[1]) / Nlev
-        zi = np.linspace(box[2], box[5], bdims[2]) / Nlev
-        xi, yi, zi = np.meshgrid(xi, yi, zi)
+        if verbose:
+            print("num boxes ", len(boxes))
+            print("starting level ", il)
 
-        xcords.extend(xi.flatten())
-        ycords.extend(yi.flatten())
-        zcords.extend(zi.flatten())
-        gdata.extend(data_no_ghost.flatten())
+        for ib, box in enumerate(boxes):
+            box = np.array([el for el in box], dtype=int)
+            bdims = box[3:] - box[:3]+1
+            shape = bdims + 2 * num_ghost
+            boxsize = shape.prod()
+
+            start = offsets[ib] + comp * boxsize
+            stop = start + boxsize
+            boxdata = data[start:stop]
+            data_w_ghost = boxdata.reshape(shape, order='F')
+            ghost_slice = tuple(
+                [slice(g, d + g , None) for g, d in zip([num_ghost, num_ghost, num_ghost], bdims)])
+            data_no_ghost = data_w_ghost[ghost_slice]
+
+            # for some reasons it has to be in this order, y, x, z
+            yi = np.linspace(box[0], box[3], bdims[0]) / Nlev
+            xi = np.linspace(box[1], box[4], bdims[1]) / Nlev
+            zi = np.linspace(box[2], box[5], bdims[2]) / Nlev
+            xi, yi, zi = np.meshgrid(xi, yi, zi)
+
+            xcords.extend(xi.flatten())
+            ycords.extend(yi.flatten())
+            zcords.extend(zi.flatten())
+            gdata.extend(data_no_ghost.flatten())
+
+    xcords = np.array(xcords)
+    ycords = np.array(ycords)
+    zcords= np.array(zcords)
+    gdata = np.array(gdata)
+
+    return (xcords, ycords, zcords), gdata
 
 
+def get_griddata(fn, comp, res=res, level_max=level_max, verbose=verbose):
+    cords, gdata = get_data(fn, comp, level_max=level_max, verbose=verbose)
 
-# Const grid
-xcords = np.array(xcords)
-ycords = np.array(ycords)
-zcords= np.array(zcords)
-gdata = np.array(gdata)
-x = np.linspace(0, 1, res)
-y = np.linspace(0, 1, res)
-z = np.linspace(0, 1, res)
-x, y, z = np.meshgrid(x, y, z)
+    # Const grid
+    x = np.linspace(0, 1, res)
+    y = np.linspace(0, 1, res)
+    z = np.linspace(0, 1, res)
+    x, y, z = np.meshgrid(x, y, z)
 
-grid = scipy.interpolate.griddata((xcords, ycords, zcords),
-                                                  gdata,
-                                                  (x, y, z),
-                                                  # method='linear')  # very very slow
-                                                  method='nearest')
+    grid = scipy.interpolate.griddata(cords, gdata, (x, y, z),
+                                      # method='linear')  # very very slow
+                                      method='nearest')
+    return grid
+
+grid = get_griddata(fn,comp, res=res, level_max=level_max, verbose=verbose)
 
 # plot result
 plt.imshow(grid[res // 2, :, :], interpolation='spline36')
