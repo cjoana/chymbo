@@ -115,36 +115,6 @@ components_vals = [
 ]
 components_vals = np.array(components_vals)
 
-# print(components_vals[:, 0])  #
-# cid = np.where(components_vals[:, 0] == 'phi')[0][0]
-# eval = components_vals[cid,1]
-# if callable(eval):
-#     L = params['L']
-#     val = eval( L/2, L/2, L/2)
-#     print(val)
-
-
-
-#
-# data = dict()
-# for ic, comp in enumerate(components):
-#     N = params['N']
-#
-#     cid = np.where(components_vals[:, 0] == comp)[0][0]
-#     # print("cid is " , cid)
-#     eval = components_vals[cid, 1]
-#     if callable(eval):
-#         pass
-#     else:
-#         try:
-#             eval = float(eval)
-#         except ValueError:
-#             print("data eval is not a function or digit  --> ", eval)
-#             raise
-#         data["comp"] = np.zeros((base_attrb['num_components'], N, N, N)) + eval
-#
-# ########################
-
 
 
 

@@ -100,22 +100,7 @@ for il in range(base_attrb['num_levels']):
             fdset.extend(fc)
         offsets.extend([len(fdset)])
 
-
-    # # # level datasets
-    # # N = params["N"]
-    # # dataset = np.zeros((base_attrb['num_components'], N, N, N))
-    # # for i, comp in enumerate(components):
-    # #     if comp in data.keys():                             #TODO
-    # #         dataset[i] = data[comp].T                       #TODO
-    # #     else:
-    # #         raise Exception(">> Component {} not found in the data dictionary".format(comp))
-    # # fdset = []
-    # # for c in range(base_attrb['num_components']):
-    # #     fc = dataset[c].T.flatten()
-    # #     fdset.extend(fc)
-    # # fdset = np.array(fdset)
-
-    lev.create_dataset("data:datatype=0", data=np.array(fdset))  #TODO
-    lev.create_dataset("data:offsets=0", data=np.array(offsets))  #TODO
+    lev.create_dataset("data:datatype=0", data=np.array(fdset))
+    lev.create_dataset("data:offsets=0", data=np.array(offsets))
 
 h5file.close()
