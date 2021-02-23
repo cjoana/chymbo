@@ -4,7 +4,7 @@ params = dict()
 all_attrb = dict()
 base_attrb = dict()
 chombogloba_attrb = dict()
-level_attrb = dict()
+levels_attrb = dict()
 boxes = dict()
 data_attributes = dict()
 
@@ -17,7 +17,10 @@ params['ghosts'] = [0, 0, 0]
 
 # Set components  (MANUAL)
 components = np.array([
-    'phi'
+    'chi',
+    'h11', 'h12', 'h13', 'h22', 'h23', 'h33',
+    'A11', 'A12', 'A13', 'A22', 'A23', 'A33',
+    'phi',
 ])
 
 # Set boxes, for each level (MANUAL)
@@ -52,8 +55,8 @@ chombogloba_attrb['SpaceDim'] = 3
 
 # set level attributes and boxes (AUTO)
 for il in range(base_attrb['num_levels']):
-    level_attrb['level_{}'.format(il)] = dict()
-    ldict = level_attrb['level_{}'.format(il)]
+    levels_attrb['level_{}'.format(il)] = dict()
+    ldict = levels_attrb['level_{}'.format(il)]
     ldict['ref_ratio'] = 2
     ldict['dt'] = float(params['L']) / params['N'] * params['dt_multiplier'] / (float(ldict['ref_ratio']) ** il)
     ldict['dx'] = float(params['L']) / params['N'] / (float(ldict['ref_ratio']) ** il)
@@ -80,3 +83,75 @@ data_attributes['ghost'] = np.array(tuple(params['ghosts']), dtype=dadt)
 data_attributes['outputGhost'] = np.array((0, 0, 0), dtype=dadt)
 data_attributes['comps'] = base_attrb['num_components']
 data_attributes['objectType'] = np.array('FArrayBox', dtype='S9')
+
+###################################
+###   DATA TEMPLATE        ########
+###################################
+
+
+def _phi(x,y,z):
+    L = params['L']
+    vec = np.array([ x, y, z ])
+    rc = np.zeros_like(vec) + L/2
+    cvec = vec - rc
+
+    A_gauss = 1
+    S_gauss = L/10
+
+    dot_prod = cvec[0, :]**2 + cvec[1, :]**2 + cvec[2, :]**2
+
+    return A_gauss * np.exp(- 0.5 * dot_prod / S_gauss**2  )
+
+
+
+
+components_vals = [
+    ['phi', _phi],
+    ['h11', 1], ['h22', 1], ['h33', 1],
+    ['h12', 0], ['h13', 0], ['h23', 0],
+    ['A11', 0], ['A22', 0], ['A33', 0],
+    ['A12', 0], ['A13', 0], ['A23', 0],
+    ['chi', 1],
+]
+components_vals = np.array(components_vals)
+
+# print(components_vals[:, 0])  #
+# cid = np.where(components_vals[:, 0] == 'phi')[0][0]
+# eval = components_vals[cid,1]
+# if callable(eval):
+#     L = params['L']
+#     val = eval( L/2, L/2, L/2)
+#     print(val)
+
+
+
+#
+# data = dict()
+# for ic, comp in enumerate(components):
+#     N = params['N']
+#
+#     cid = np.where(components_vals[:, 0] == comp)[0][0]
+#     # print("cid is " , cid)
+#     eval = components_vals[cid, 1]
+#     if callable(eval):
+#         pass
+#     else:
+#         try:
+#             eval = float(eval)
+#         except ValueError:
+#             print("data eval is not a function or digit  --> ", eval)
+#             raise
+#         data["comp"] = np.zeros((base_attrb['num_components'], N, N, N)) + eval
+#
+# ########################
+
+
+
+
+
+
+
+
+
+
+
