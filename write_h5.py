@@ -53,14 +53,15 @@ for il in range(base_attrb['num_levels']):
 
     Nlev = params['N'] * 2 ** (il)
     dd_lev = params['L'] / Nlev
-    boxes_lev = np.array(boxes[level_id].tolist())[0]
+    boxes_lev = np.array(boxes[level_id].tolist())
+    offsets = [0]
+    fdset = []  # list containing all box-data (flatten)
     for ib, lev_box in enumerate(boxes_lev):
-        if verbose > 2: print("  {} box of level {}".format(ib, il))
-        fdset = []  # list containing all box-data (flatten)
-        offsets = [0]
-        X = np.arange(boxes_lev[0], boxes_lev[3]+1)
-        Y = np.arange(boxes_lev[1], boxes_lev[4]+1)
-        Z = np.arange(boxes_lev[2], boxes_lev[5]+1)
+        if verbose > 2:
+            print("  {} box of level {}".format(ib, il))
+        X = np.arange(lev_box[0], lev_box[3]+1)
+        Y = np.arange(lev_box[1], lev_box[4]+1)
+        Z = np.arange(lev_box[2], lev_box[5]+1)
         cord_grid_check = False
         for ic, comp in enumerate(components):
             comp_grid = np.zeros((len(X), len(Y), len(Z)))
@@ -95,11 +96,13 @@ for il in range(base_attrb['num_levels']):
                     raise
                 comp_grid = comp_grid.copy() + eval
 
-            fc = comp_grid.flatten()
+            fc = comp_grid.T.flatten()
             fdset.extend(fc)
         offsets.extend([len(fdset)])
+        # print("  -->", offsets)
 
+    offsets = np.array(offsets)
     lev.create_dataset("data:datatype=0", data=np.array(fdset))
-    lev.create_dataset("data:offsets=0", data=np.array(offsets))
+    lev.create_dataset("data:offsets=0", data=offsets)
 
 h5file.close()
