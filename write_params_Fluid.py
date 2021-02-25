@@ -17,15 +17,23 @@ params['ghosts'] = [0, 0, 0]
 
 # Set components  (MANUAL)
 components = np.array([
-    'chi',
-    'h11', 'h12', 'h13', 'h22', 'h23', 'h33',
-    'A11', 'A12', 'A13', 'A22', 'A23', 'A33',
-    'phi',
+    "chi",
+    "h11", "h12", "h13", "h22", "h23", "h33",
+    "K",
+    "A11", "A12", "A13", "A22", "A23", "A33",
+    "Theta",
+    "Gamma1", "Gamma2", "Gamma3",
+    "lapse",
+    "shift1", "shift2", "shift3",
+    "B1", "B2", "B3",
+    "density", "energy", "pressure", "enthalpy",
+    "D", "E", "W",
+    "Z1", "Z2", "Z3",
+    "V1", "V2", "V3",
 ])
 
 # Set boxes, for each level (MANUAL)
 boxes["level_0"] = np.array([
-    # [0, 0, 0, 63, 63, 63],
     [0, 0, 0, 15, 15, 15],
     [0, 0, 16, 15, 15, 31],
     [0, 0, 32, 15, 15, 47],
@@ -92,13 +100,16 @@ boxes["level_0"] = np.array([
     [48, 48, 48, 63, 63, 63],
 ])
 
+# boxes["level_0"] = np.array([
+#     [0, 0, 0, 63, 63, 63],
+# ])
+
 boxes["level_1"] = np.array([
-   [40, 40, 40, 87, 87, 87],
+    [40, 40, 40, 87, 87, 87],
 ])
 boxes["level_2"] = np.array([
-   [104, 104, 104, 151, 151, 151],
+    [104, 104, 104, 151, 151, 151],
 ])
-
 
 # set base attibutes (MANUAL)
 base_attrb['time'] = 0
@@ -112,7 +123,6 @@ for comp, name in enumerate(components):
     key = 'component_' + str(comp)
     tt = 'S' + str(len(name))
     base_attrb[key] = np.array(name, dtype=tt)
-
 
 # def Chombo_global attributes (AUTO)
 chombogloba_attrb['testReal'] = 0.0
@@ -138,9 +148,8 @@ for il in range(base_attrb['num_levels']):
 
     prob_dt = np.dtype([('lo_i', '<i4'), ('lo_j', '<i4'), ('lo_k', '<i4'),
                         ('hi_i', '<i4'), ('hi_j', '<i4'), ('hi_k', '<i4')])
-    lev_box = np.array([ tuple(elm) for elm in  boxes["level_{}".format(il)]], dtype=prob_dt)
+    lev_box = np.array([tuple(elm) for elm in boxes["level_{}".format(il)]], dtype=prob_dt)
     boxes["level_{}".format(il)] = lev_box
-
 
 # set "data attributes" directory in levels, always the same.  (AUTO)
 dadt = np.dtype([('intvecti', '<i4'), ('intvectj', '<i4'), ('intvectk', '<i4')])
@@ -149,40 +158,96 @@ data_attributes['outputGhost'] = np.array((0, 0, 0), dtype=dadt)
 data_attributes['comps'] = base_attrb['num_components']
 data_attributes['objectType'] = np.array('FArrayBox', dtype='S9')
 
+
 ###################################
 ###   DATA TEMPLATE        ########
 ###################################
 
 
-def _phi(x,y,z):
+def _rho_fl(x, y, z):
     """
     x,y,z : These are the cell-centered conformal physical coordinates  ( grid-cords-centered * N_lev/ L )
             usually they are given as 3D arrays. size :(Dim, Nx_box, Ny_box, Nz_box)
     """
     L = params['L']
-    vec = np.array([ x, y, z ])
-    rc = np.zeros_like(vec) + L/2
+    vec = np.array([x, y, z])
+    rc = np.zeros_like(vec) + L / 2
     cvec = vec - rc
 
     A_gauss = 1
-    S_gauss = L/10
-    S_gauss_x = L/10
-    S_gauss_y = L/6
-    S_gauss_z = L/8
+    S_gauss = L / 10
+    S_gauss_x = L / 10
+    S_gauss_y = L / 9
+    S_gauss_z = L / 8
 
-    dot_prod = cvec[0, :]**2 / S_gauss_x**2 + cvec[1, :]**2 /S_gauss_y**2 + cvec[2, :]**2/S_gauss_z**2
+    dot_prod = cvec[0, :] ** 2 / S_gauss_x ** 2 + cvec[1, :] ** 2 / S_gauss_y ** 2 + cvec[2, :] ** 2 / S_gauss_z ** 2
 
-    return A_gauss * np.exp(- 0.5 * dot_prod   )
+    return A_gauss * np.exp(- 0.5 * dot_prod)
     # return A_gauss * (np.sin(x *  2*np.pi / L) + np.sin(y * 2*np.pi / L) + np.sin(z * 2*np.pi / L))
 
+
+def _chi(x, y, z):
+    L = params['L']
+    vec = np.array([x, y, z])
+    # rc = np.zeros_like(vec) + L/2
+    out = np.zeros_like(x) + 1
+    return out
+
+
+def _K(x, y, z):
+    L = params['L']
+    vec = np.array([x, y, z])
+    # rc = np.zeros_like(vec) + L/2
+    out = np.zeros_like(x)
+    return out
+
+
+def _D(x, y, z):
+    L = params['L']
+    vec = np.array([x, y, z])
+    # rc = np.zeros_like(vec) + L/2
+    out = np.zeros_like(x)+ 0.1
+    return out
+
+
+def _E(x, y, z):
+    L = params['L']
+    vec = np.array([x, y, z])
+    # rc = np.zeros_like(vec) + L/2
+    out = np.zeros_like(x)
+    return out + 0.01
+
+
 components_vals = [
-    ['phi', _phi],
+    ['chi', _chi],
     ['h11', 1], ['h22', 1], ['h33', 1],
     ['h12', 0], ['h13', 0], ['h23', 0],
+    ['K', _K],
     ['A11', 0], ['A22', 0], ['A33', 0],
     ['A12', 0], ['A13', 0], ['A23', 0],
-    ['chi', 1],
+    ['Theta', 0],
+    ['Gamma1', 0], ['Gamma2', 0], ['Gamma3', 0],
+    ['lapse', 1],
+    ['shift1', 0], ['shift2', 0], ['shift3', 0],
+    ['B1', 0], ['B2', 0], ['B3', 0],
+    ['density', 0], ['energy', 0], ['pressure', 0], ['enthalpy', 0],
+    ['D', _D], ['E', _E], ['W', 1],
+    ['Z1', 0], ['Z2', 0], ['Z3', 0],
+    ['V1', 0], ['V2', 0], ['V3', 0],
 ]
 components_vals = np.array(components_vals)
 
+# "chi",
+# "h11",    "h12",    "h13",    "h22", "h23", "h33",
+# "K",
+# "A11",    "A12",    "A13",    "A22", "A23", "A33",
+# "Theta",
+# "Gamma1", "Gamma2", "Gamma3",
+# "lapse",
+# "shift1", "shift2", "shift3",
+# "B1",     "B2",     "B3",
+# "density",  "energy", "pressure", "enthalpy",
+# "D",  "E", "W",
+# "Z1", "Z2", "Z3",
+# "V1", "V2","V3",
 

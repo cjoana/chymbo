@@ -6,12 +6,11 @@ import matplotlib.pyplot as plt
 import scipy
 # import yt
 
-from write_params import *
+from write_params_Fluid import *
 
 verbose = 0
 overwrite = True
 filename = "data_samples/test.hdf5"
-
 
 if overwrite:
     if os.path.exists(filename):
@@ -88,6 +87,10 @@ for il in range(base_attrb['num_levels']):
                                 y_cord_grid[ix, iy, iz] = (py + dcnt) * dd_lev
                                 z_cord_grid[ix, iy, iz] = (pz + dcnt) * dd_lev
                 comp_grid = eval(x_cord_grid, y_cord_grid, z_cord_grid)
+                if comp_grid.size != x_cord_grid.size:
+                    print("data size does not agree with mesh size")
+                    print(" grid size {}, data size {}".format(x_cord_grid.size, comp_grid.size))
+                    raise ValueError
             else:
                 try:
                     eval = float(eval)
@@ -96,10 +99,11 @@ for il in range(base_attrb['num_levels']):
                     raise
                 comp_grid = comp_grid.copy() + eval
 
+            # print(" comp {},  size {}".format(comp, comp_grid.size))
+            # fc = comp_grid.flatten()
             fc = comp_grid.T.flatten()
             fdset.extend(fc)
         offsets.extend([len(fdset)])
-        # print("  -->", offsets)
 
     offsets = np.array(offsets)
     lev.create_dataset("data:datatype=0", data=np.array(fdset))
